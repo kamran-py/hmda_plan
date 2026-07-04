@@ -1,0 +1,33 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Large local data artifacts
+data/raw/*
+data/parquet/*
+data/duckdb/*
+output/*
+
+# Keep directory placeholders
+!data/raw/.gitkeep
+!data/parquet/.gitkeep
+!data/duckdb/.gitkeep
+!output/.gitkeep
+
+# Local runtime files
+*.duckdb
+*.duckdb.wal
+*.parquet
+*.csv
+*.zip
+*.tmp
+*.partial
+*.log
+logs/
