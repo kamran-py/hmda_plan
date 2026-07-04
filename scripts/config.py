@@ -25,7 +25,7 @@ DATA_BROWSER_URL_TEMPLATE = (
     "https://ffiec.cfpb.gov/v2/data-browser-api/view/nationwide/csv?years={year}"
 )
 
-DEFAULT_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-before-download)"
+DEFAULT_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)"
 USER_AGENT_ENV_VAR = "HMDA_USER_AGENT"
 
 

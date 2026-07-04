@@ -58,20 +58,20 @@ These URLs were verified by local template expansion only, not by making HTTP re
 Run these only after explicit approval:
 
 ```powershell
-$UserAgent = "hmda-county-panel-research/0.1 (contact: set-before-download)"
+$UserAgent = "hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)"
 if (Test-Path "data\raw\hmda_2007_nationwide.zip") { throw "Target already exists: data\raw\hmda_2007_nationwide.zip" }
 curl.exe --location --fail --retry 3 --retry-delay 5 --continue-at - --user-agent $UserAgent --output "data\raw\hmda_2007_nationwide.zip.partial" "https://files.consumerfinance.gov/hmda-historic-loan-data/hmda_2007_nationwide_all-records_codes.zip"
 if ($LASTEXITCODE -eq 0) { Rename-Item -Path "data\raw\hmda_2007_nationwide.zip.partial" -NewName "hmda_2007_nationwide.zip" }
 ```
 
 ```powershell
-$UserAgent = "hmda-county-panel-research/0.1 (contact: set-before-download)"
+$UserAgent = "hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)"
 if (Test-Path "data\raw\hmda_2018_nationwide.csv") { throw "Target already exists: data\raw\hmda_2018_nationwide.csv" }
 curl.exe --location --fail --retry 3 --retry-delay 5 --continue-at - --user-agent $UserAgent --output "data\raw\hmda_2018_nationwide.csv.partial" "https://ffiec.cfpb.gov/v2/data-browser-api/view/nationwide/csv?years=2018"
 if ($LASTEXITCODE -eq 0) { Rename-Item -Path "data\raw\hmda_2018_nationwide.csv.partial" -NewName "hmda_2018_nationwide.csv" }
 ```
 
-Before approval, replace `contact: set-before-download` with the preferred contact string.
+Before approval, set `HMDA_USER_AGENT` with the preferred contact string.
 
 ### Expected Raw Outputs
 
@@ -157,13 +157,13 @@ The command reports:
 The User-Agent comes from the `HMDA_USER_AGENT` environment variable. If that variable is unset, the default is:
 
 ```text
-hmda-county-panel-research/0.1 (contact: set-before-download)
+hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)
 ```
 
 Exact command requiring approval before any network request:
 
 ```powershell
-$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-before-download)"
+$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)"
 python -m scripts.download --validate-urls --years 2007 2018
 ```
 
@@ -174,7 +174,7 @@ This command should not create files or download full HMDA datasets. It should o
 Executed after user approval:
 
 ```powershell
-$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-before-download)"
+$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)"
 python -m scripts.download --validate-urls --years 2007 2018
 ```
 
@@ -223,7 +223,7 @@ The fallback reports:
 Exact command requiring approval before this network validation run:
 
 ```powershell
-$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-before-download)"
+$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)"
 python -m scripts.download --validate-urls --years 2007 2018
 ```
 
@@ -232,7 +232,7 @@ python -m scripts.download --validate-urls --years 2007 2018
 Executed after user approval:
 
 ```powershell
-$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: kamranahmed.8796@gmail.com)"
+$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)"
 python -m scripts.download --validate-urls --years 2007 2018
 ```
 
@@ -274,7 +274,7 @@ python -B -m scripts.download --all-years
 Approved raw-download command executed:
 
 ```powershell
-$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: kamranahmed.8796@gmail.com)"
+$env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)"
 python -m scripts.download --download --all-years --timeout-seconds 300 --retries 5 --backoff-seconds 10 --min-free-gb 100 --manifest data\raw\download_manifest.json
 ```
 
@@ -788,3 +788,463 @@ Notes:
 - `loan_years` is a view, so the database does not duplicate all loan-level rows.
 - `loan_amount` multiplies historic `loan_amount_000s` by `1000` and casts post-2018 `loan_amount` directly.
 - `raw_source_columns` stores selected source fields used for canonical mappings, not the full raw source record.
+
+## DuckDB QA Completed
+
+Status: completed. No final research aggregates were created, no fintech lender classification was run, and no raw or Parquet files were deleted.
+
+Implemented in:
+
+- `scripts/db_qa.py`
+
+Output:
+
+- `docs/db_qa.md`
+
+QA checks:
+
+- Inspected `data/duckdb/hmda_panel.duckdb`.
+- Queried `year_summary`.
+- Checked `loan_years` missingness for activity year, state code, county code, lender identifier, and loan amount.
+- Checked invalid or unexpected activity years.
+- Reconciled `loan_years` total rows to `data/parquet/conversion_metadata.json`.
+- Confirmed all years `2007-2024` are present.
+- Checked county code and state code format patterns by year and era.
+
+Key results:
+
+- `loan_years` total rows: `312095276`.
+- `conversion_metadata.json` total rows: `312095276`.
+- Row count match: `True`.
+- All years `2007-2024` present: `True`.
+- Invalid activity years: none found.
+- `lei_or_respondent_id` is not a column in `loan_years`; the first DuckDB build renamed it to canonical `lender_id`.
+- `lender_id` is present in `loan_years`.
+
+Notable missingness:
+
+- `2014` has `264330` missing `state_code` and `320233` missing `county_code`.
+- `2017` has `5036` missing `loan_amount`.
+- `2018` has `1961` missing `state_code`, `county_code`, and `lender_id`.
+- `2019` has `21` missing `state_code`/`lender_id` and `77` missing `county_code`.
+
+Geographic coding findings:
+
+- Pre-2018 `county_code` is mostly a 3-digit county component, with some `NA` and unpadded numeric values.
+- Post-2018 `county_code` is mostly a 5-digit full county FIPS code, with some `NA`.
+- Pre-2018 `state_code` is mostly numeric/FIPS-style, with some `NA` and unpadded numeric values.
+- Post-2018 `state_code` is mostly a two-letter state abbreviation.
+- State and county codes must be normalized before county-year research aggregates.
+
+## Geography Normalization Completed
+
+Status: completed. No final research aggregates were created, no fintech lender classification was run, and no raw or Parquet files were deleted.
+
+Implemented in:
+
+- `scripts/normalize_geography.py`
+
+Exact database-modifying command run:
+
+```powershell
+python -m scripts.normalize_geography
+```
+
+Outputs:
+
+- `docs/geography_normalization.md`
+
+DuckDB objects created or replaced:
+
+- `state_fips_crosswalk`: internal state FIPS crosswalk with `56` rows.
+- `loan_years_geo`: view over `loan_years` with normalized geography fields.
+
+Normalized fields:
+
+- `state_fips_2`
+- `county_fips_3`
+- `county_fips_5`
+
+Mapping rules:
+
+- Numeric `state_code` values are left-padded to two digits.
+- Two-letter `state_code` values are mapped through `state_fips_crosswalk`.
+- One-to-three digit `county_code` values are left-padded to three digits and combined with `state_fips_2`.
+- Five-digit `county_code` values are preserved as `county_fips_5` and split into `county_fips_3`.
+- Original `state_code` and `county_code` are preserved.
+
+Validation totals:
+
+- Rows in `loan_years_geo`: `312095276`.
+- Missing `state_fips_2`: `5426075`.
+- Missing `county_fips_5`: `6952961`.
+- Distinct normalized states: `56`.
+- Distinct normalized counties: `3330`.
+
+Interpretation:
+
+- The normalized fields are now suitable for county-year aggregate keys.
+- Remaining missing normalized geography is primarily from source missing or `NA` state/county values.
+- Research aggregates should use `state_fips_2` and `county_fips_5`, not raw `state_code` and `county_code`.
+
+## County-Year Lending Aggregate Completed
+
+Status: completed. No fintech lender classification was run, and no raw or Parquet files were deleted.
+
+Implemented in:
+
+- `scripts/build_county_year_lending.py`
+
+Exact database-modifying command run after user approval:
+
+```powershell
+python -m scripts.build_county_year_lending
+```
+
+Outputs:
+
+- `docs/county_year_lending.md`
+
+DuckDB objects created or replaced:
+
+- `county_year_lending`
+- `county_year_lending_missing_geo_qa`
+- `action_taken_metadata`
+
+Aggregate source and grain:
+
+- Source view: `loan_years_geo`
+- Grain: `activity_year`, `state_fips_2`, `county_fips_5`
+- Rows with null `county_fips_5` are excluded from `county_year_lending` and summarized in `county_year_lending_missing_geo_qa`.
+
+Metrics:
+
+- `total_applications`
+- `originated_loans`, using `action_taken = '1'`
+- `denied_applications`, using `action_taken = '3'`
+- `total_loan_amount`
+- `average_loan_amount`
+- `median_loan_amount`
+- `lender_count`
+
+Validation summary:
+
+- Aggregate rows: `68562`
+- Years covered: `2007-2024`
+- Included applications: `305142315`
+- Originated loans: `155554439`
+- Denied applications: `48615040`
+
+Notes:
+
+- Action code `7` is documented as a preapproval denial but is not included in `denied_applications`.
+- `lender_count` uses the canonical `lender_id`, which combines historic respondent IDs and post-2018 LEIs; this is useful within-year but is not a cross-era lender identity resolution.
+- The elevated county counts in some post-2018 years should be reviewed before research use because the aggregate grain retains `state_fips_2` and `county_fips_5` pairs even when `state_fips_2` is null or does not match the first two digits of `county_fips_5`.
+- Geography consistency QA found no state/county prefix mismatches in `2007-2017` or `2020-2024`, but found `3427` aggregate rows with prefix mismatches in `2018` and `755` in `2019`.
+- Distinct `county_fips_5` counts are lower than aggregate row counts in post-2018 years because some county FIPS values appear with multiple state groupings, including null state groupings.
+
+## Post-2018 Geography Cleanup Completed
+
+Status: completed. No downloads were run, no raw or Parquet files were deleted, no fintech lender classification was run, and the full database was not rebuilt.
+
+Exact commands run after user approval:
+
+```powershell
+python -m scripts.normalize_geography
+python -m scripts.build_county_year_lending
+```
+
+Updated normalization behavior:
+
+- For post-2018 records with a valid five-digit `county_code`, `county_fips_5` is derived directly from `county_code`.
+- For post-2018 records with a valid five-digit `county_code`, `state_fips_2` is derived from the county FIPS prefix when `state_code` is missing, unmapped, or conflicts with the county prefix.
+- Original `state_code` and `county_code` are preserved.
+- `loan_years_geo` now includes audit flags documenting normalized geography sources.
+
+Updated outputs:
+
+- `docs/geography_normalization.md`
+- `docs/county_year_lending.md`
+- DuckDB view `loan_years_geo`
+- DuckDB table `county_year_lending`
+- DuckDB table `county_year_lending_missing_geo_qa`
+
+Post-cleanup validation:
+
+- Aggregate rows: `58006`
+- Included applications: `305141850`
+- Excluded missing-geography rows: `6953426`
+- Prefix mismatches by year: `0` for all years.
+- Null-state aggregate rows by year: none.
+
+Remaining missing normalized geography is from rows without usable county geography, not from valid five-digit post-2018 county FIPS records with missing or conflicting state codes.
+
+## Research Readiness Audit Completed
+
+Status: completed. No new research aggregates were created, no fintech lender classification was run, and no final CSVs were exported.
+
+Implemented in:
+
+- `scripts/research_readiness_audit.py`
+
+Output:
+
+- `docs/research_readiness_audit.md`
+
+Audit summary:
+
+- `county_year_lending` rows: `58006`
+- Years covered: `2007-2024`
+- Null aggregate keys: `0`
+- Duplicate aggregate grain rows: `0`
+- Included applications reconcile to `loan_years_geo`: difference `0`
+- Excluded missing-geography rows reconcile to `county_year_lending_missing_geo_qa`: difference `0`
+- Included applications: `305141850`
+- Excluded missing-geography rows: `6953426`
+
+Lender readiness:
+
+- Canonical lender identifier: `lender_id`
+- Identifier type: `lender_id_type`
+- Pre-2018 identifier type: `respondent_id`
+- Post-2018 identifier type: `lei`
+- Explicit lender-name columns in `loan_years_geo`: none.
+- Lender-name keys retained in `raw_source_columns`: none.
+- Lender IDs are missing in `2018` for `1961` rows and in `2019` for `21` rows; all other years have zero missing lender IDs.
+
+Action mapping:
+
+- Originated loans count `action_taken = '1'`.
+- Denied applications count `action_taken = '3'`.
+- Action code `7` is documented as preapproval denied but is not included in `denied_applications`.
+
+Readiness conclusion:
+
+- The county-year aggregate and normalized geography are ready for lender-level analysis.
+- Fintech classification still requires an external or separately sourced lender classification/name crosswalk because the current canonical database does not contain lender names.
+
+## Lender-County-Year Aggregate Prepared
+
+Status: implemented but not run. The database has not been modified for this step yet.
+
+Implemented in:
+
+- `scripts/build_lender_county_year.py`
+
+Planned output:
+
+- `docs/lender_county_year.md`
+
+Planned DuckDB objects:
+
+- `lender_county_year`
+- `lender_county_year_missing_lender_qa`
+- `lender_county_year_missing_geo_qa`
+
+Source and grain:
+
+- Source view: `loan_years_geo`
+- Grain: `activity_year`, `state_fips_2`, `county_fips_5`, `lender_id`
+
+Rules:
+
+- Exclude rows with missing `county_fips_5` from the main table.
+- Exclude rows with missing or blank `lender_id` from the main table.
+- Preserve missing-lender exclusions in `lender_county_year_missing_lender_qa`.
+- Preserve missing-geography exclusions in `lender_county_year_missing_geo_qa`.
+- Do not classify fintech lenders.
+- Do not create `county_year_fintech_lending`.
+
+Metrics:
+
+- `applications`
+- `originated_loans`, using `action_taken = '1'`
+- `denied_applications`, using `action_taken = '3'`
+- `total_loan_amount`
+- `average_loan_amount`
+- `median_loan_amount`
+- loan type count columns for codes `1-4` plus other
+- loan purpose count columns for codes `1`, `2`, `3`, `31`, `32`, `4`, `5` plus other
+
+Non-mutating checks completed:
+
+```powershell
+python -B -m py_compile .\scripts\build_lender_county_year.py
+python -B -m unittest discover -s .\tests
+python -B -m scripts.build_lender_county_year --dry-run
+```
+
+Exact command requiring approval before database modification:
+
+```powershell
+python -m scripts.build_lender_county_year
+```
+
+## Lender-County-Year Aggregate Completed
+
+Status: completed. No downloads were run, no raw or Parquet files were deleted, no fintech lender classification was run, `county_year_fintech_lending` was not created, and the full database was not rebuilt.
+
+Exact command run after user approval:
+
+```powershell
+python -m scripts.build_lender_county_year
+```
+
+Outputs:
+
+- `docs/lender_county_year.md`
+
+DuckDB objects created or replaced:
+
+- `lender_county_year`
+- `lender_county_year_missing_lender_qa`
+- `lender_county_year_missing_geo_qa`
+
+Build summary:
+
+- `lender_county_year` rows: `8923506`
+- Years covered: `2007-2024`
+- Applications included: `305141850`
+- Originations included: `155554418`
+- Denied applications included: `48614948`
+- Duplicate grain rows: `0`
+- Null main-table keys: `0`
+
+Exclusion QA:
+
+- Missing lender rows with usable county geography: none.
+- Missing geography rows excluded: `6953426`.
+- Missing lender IDs in the excluded missing-geography bucket: `1961` in `2018` and `21` in `2019`.
+
+Readiness note:
+
+- There is no blocker for non-fintech lender-county-year exports.
+- Fintech-labeled exports remain blocked until an external or separately sourced lender classification/name crosswalk is added.
+
+## Large-Data Export Step Revised
+
+Status: implemented but not run. No output export files have been created by the revised export step yet.
+
+Implemented in:
+
+- `scripts/export_tables.py`
+
+Default planned outputs:
+
+- `output/county_year_lending.csv`
+- `output/lender_county_year.parquet`
+- `output/lender_county_year_sample.csv`
+- `output/export_manifest.csv`
+- `docs/export_outputs.md`
+
+Row count preflight:
+
+- `county_year_lending`: `58006`
+- `lender_county_year`: `8923506`
+
+Format decision:
+
+- `county_year_lending` is small enough for CSV by default.
+- `lender_county_year` is exported as Parquet by default because it has millions of rows.
+- `lender_county_year_sample.csv` contains up to `100000` ordered rows for easy inspection.
+- Full compressed CSV export is optional with `--include-large-csv` and writes `output/lender_county_year.csv.gz`.
+
+Non-mutating checks completed:
+
+```powershell
+python -B -m py_compile .\scripts\export_tables.py
+python -B -m unittest discover -s .\tests
+python -B -m scripts.export_tables --dry-run
+```
+
+Exact default export command requiring approval:
+
+```powershell
+python -m scripts.export_tables
+```
+
+## Default Export Completed
+
+Status: completed. No downloads were run, no raw or Parquet source files were deleted, no fintech lender classification was run, and the database was not rebuilt.
+
+Exact command run after user approval:
+
+```powershell
+python -m scripts.export_tables
+```
+
+Outputs:
+
+- `output/county_year_lending.csv`
+- `output/lender_county_year.parquet`
+- `output/lender_county_year_sample.csv`
+- `output/export_manifest.csv`
+- `docs/export_outputs.md`
+
+Export results:
+
+- `county_year_lending.csv`: `58006` rows, `3975752` bytes.
+- `lender_county_year.parquet`: `8923506` rows, `129077088` bytes.
+- `lender_county_year_sample.csv`: `100000` rows, `10369968` bytes.
+- `output/lender_county_year.csv.gz` was not created.
+
+Parquet verification:
+
+- DuckDB readback row count: `8923506`.
+- DuckDB readback years: `2007-2024`.
+- DuckDB readback distinct year count: `18`.
+- DuckDB readback column count: `24`.
+
+Remaining issue before `docs/final_summary.md`:
+
+- Fintech-labeled outputs still require an external lender classification/name crosswalk.
+- Non-fintech county-year and lender-county-year exports are complete.
+
+## README Updated
+
+Status: completed. No database modification, download, conversion, classification, rebuild, or export was run.
+
+Updated:
+
+- `README.md`
+
+The README is now the project entry point and summarizes:
+
+- project overview
+- final outputs
+- data scale
+- pipeline summary
+- main database objects
+- reproduction commands
+- key caveats
+- documentation map
+
+Superseded note: `docs/final_summary.md` did not exist at the time of this README update, but it has since been created.
+
+## Final Research Summary Completed
+
+Status: completed. No database modification, download, conversion, classification, rebuild, or export was run.
+
+Created:
+
+- `docs/final_summary.md`
+
+Updated:
+
+- `README.md`
+- `docs/progress.md`
+
+The final summary is the main research-methods and data-construction memo. It documents the project objective, data sources, data scale, pipeline architecture, DuckDB objects, panel units, variable construction, geography normalization, action-code mapping, lender identifiers, fintech-classification limitation, econometric readiness, QA checks, final exports, reproducibility commands, next steps, and caveats.
+
+The README was shortened into a project entry point and now links to `docs/final_summary.md` and the supporting generated documentation.
+
+## README Entry Point Refreshed
+
+Status: completed. No database modification, download, conversion, classification, rebuild, or export was run.
+
+Updated:
+
+- `README.md`
+- `docs/progress.md`
+
+The README now includes the project overview, final outputs, data scale, pipeline summary, main database objects, reproduction commands, key caveats, and documentation map using only repository-validated facts.

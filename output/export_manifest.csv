@@ -1,0 +1,4 @@
+label,table_name,output_path,format,compression,status,row_count,file_size_bytes,started_at,finished_at,error
+county_year_lending_csv,county_year_lending,output/county_year_lending.csv,csv,,exported,58006,3975752,2026-07-04T18:39:57.724797+00:00,2026-07-04T18:39:57.856330+00:00,
+lender_county_year_parquet,lender_county_year,output/lender_county_year.parquet,parquet,,exported,8923506,129077088,2026-07-04T18:39:57.856422+00:00,2026-07-04T18:40:06.912642+00:00,
+lender_county_year_sample_csv,lender_county_year,output/lender_county_year_sample.csv,csv,,exported,100000,10369968,2026-07-04T18:40:06.912800+00:00,2026-07-04T18:40:07.617047+00:00,

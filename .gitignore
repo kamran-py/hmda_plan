@@ -26,8 +26,14 @@ output/*
 *.duckdb.wal
 *.parquet
 *.csv
+*.csv.gz
 *.zip
 *.tmp
 *.partial
 *.log
 logs/
+
+# Small public export artifacts
+!output/county_year_lending.csv
+!output/lender_county_year_sample.csv
+!output/export_manifest.csv
