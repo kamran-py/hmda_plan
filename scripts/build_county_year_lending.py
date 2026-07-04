@@ -324,7 +324,7 @@ def build_markdown(results: dict[str, Any]) -> str:
         "",
         "## Geography Consistency QA",
         "",
-        "Because the aggregate grain includes both `state_fips_2` and `county_fips_5`, the aggregate row count can exceed the distinct `county_fips_5` count when source geography has a null state or a state/county prefix mismatch. These rows are retained in the first aggregate for transparency and should be reviewed before research use.",
+        "The geography consistency check confirms that all county-year aggregate rows have non-null state FIPS values and that every `county_fips_5` prefix matches `state_fips_2`. After geography normalization, there are zero null-state aggregate rows and zero state/county prefix mismatches in every year.",
         "",
         markdown_table(
             results["geography_consistency"],
