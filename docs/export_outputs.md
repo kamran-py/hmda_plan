@@ -17,21 +17,17 @@ The small CSV outputs and manifest are committed for public review. The full len
 
 | file | table | format | rows | size_bytes | status |
 | --- | --- | --- | --- | --- | --- |
-| county_year_lending.csv | county_year_lending | csv | 58,006 | 3,975,752 | exported |
-| lender_county_year.parquet | lender_county_year | parquet | 8,923,506 | 129,077,088 | exported |
-| lender_county_year_sample.csv | lender_county_year | csv | 100,000 | 10,369,968 | exported |
+| county_year_lending.csv | county_year_lending | csv | 58,006 | 5,234,258 | exported |
+| lender_county_year.parquet | lender_county_year | parquet | 8,923,506 | 148,010,525 | exported |
+| lender_county_year_sample.csv | lender_county_year | csv | 100,000 | 11,628,586 | exported |
 
 ## Large Table Format
 
 `lender_county_year` is exported as Parquet by default because it has millions of rows. Parquet is smaller, typed, faster to read with DuckDB, R, Python, and other analytics tools, and avoids the large disk footprint and slower parsing of a raw CSV.
 
-A 100,000-row CSV sample is exported for quick inspection in spreadsheet tools.
+A 100,000-row CSV sample is exported for quick inspection in spreadsheet tools. The sample is stratified by `activity_year` so the public sample is not limited to the first year in sort order.
 
-In the public GitHub repository, regenerate the full Parquet export with:
-
-```powershell
-python -m scripts.export_tables
-```
+Default exports include `state_name` alongside `state_fips_2`. County names require a county FIPS reference table and are intentionally not inferred from the five-digit FIPS code alone.
 
 ## Full CSV Option
 

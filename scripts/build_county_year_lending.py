@@ -18,6 +18,15 @@ SELECT
     activity_year,
     state_fips_2,
     county_fips_5,
+    COUNT(*) AS total_records,
+    SUM(
+        CASE
+            WHEN TRIM(action_taken) IN ('1', '2', '3', '4', '5', '7', '8')
+            THEN 1
+            ELSE 0
+        END
+    ) AS application_records,
+    SUM(CASE WHEN TRIM(action_taken) = '6' THEN 1 ELSE 0 END) AS purchased_loans,
     COUNT(*) AS total_applications,
     SUM(CASE WHEN TRIM(action_taken) = '1' THEN 1 ELSE 0 END) AS originated_loans,
     SUM(CASE WHEN TRIM(action_taken) = '3' THEN 1 ELSE 0 END) AS denied_applications,
@@ -118,6 +127,9 @@ def build_aggregate() -> dict[str, Any]:
                 MIN(activity_year) AS min_year,
                 MAX(activity_year) AS max_year,
                 SUM(total_applications) AS included_applications,
+                SUM(total_records) AS included_records,
+                SUM(application_records) AS included_application_records,
+                SUM(purchased_loans) AS purchased_loans,
                 SUM(originated_loans) AS originated_loans,
                 SUM(denied_applications) AS denied_applications
             FROM county_year_lending;
@@ -129,6 +141,9 @@ def build_aggregate() -> dict[str, Any]:
             SELECT
                 activity_year,
                 COUNT(*) AS county_count,
+                SUM(total_records) AS total_records,
+                SUM(application_records) AS application_records,
+                SUM(purchased_loans) AS purchased_loans,
                 SUM(total_applications) AS total_applications,
                 SUM(originated_loans) AS originated_loans,
                 SUM(denied_applications) AS denied_applications,
@@ -193,7 +208,15 @@ def build_aggregate() -> dict[str, Any]:
         con.close()
 
     for row in county_count_by_year:
-        for column in ["county_count", "total_applications", "originated_loans", "denied_applications"]:
+        for column in [
+            "county_count",
+            "total_records",
+            "application_records",
+            "purchased_loans",
+            "total_applications",
+            "originated_loans",
+            "denied_applications",
+        ]:
             row[column] = fmt_int(row[column])
         row["total_loan_amount"] = fmt_float(row["total_loan_amount"])
 
@@ -211,7 +234,15 @@ def build_aggregate() -> dict[str, Any]:
             row[column] = fmt_int(row[column])
         row["total_loan_amount"] = fmt_float(row["total_loan_amount"])
 
-    for column in ["aggregate_row_count", "included_applications", "originated_loans", "denied_applications"]:
+    for column in [
+        "aggregate_row_count",
+        "included_applications",
+        "included_records",
+        "included_application_records",
+        "purchased_loans",
+        "originated_loans",
+        "denied_applications",
+    ]:
         aggregate_summary[column] = fmt_int(aggregate_summary[column])
 
     return {
@@ -245,7 +276,10 @@ def build_markdown(results: dict[str, Any]) -> str:
         "",
         "## Metrics",
         "",
-        "- `total_applications`: count of loan-level rows at the county-year grain.",
+        "- `total_records`: count of loan-level HMDA records at the county-year grain.",
+        "- `application_records`: count of non-purchase action records with `action_taken` in `1`, `2`, `3`, `4`, `5`, `7`, or `8`.",
+        "- `purchased_loans`: rows where `action_taken = '6'`.",
+        "- `total_applications`: legacy alias for `total_records`, retained for backward compatibility with the first public export.",
         "- `originated_loans`: rows where `action_taken = '1'`.",
         "- `denied_applications`: rows where `action_taken = '3'`.",
         "- `total_loan_amount`: sum of normalized `loan_amount`.",
@@ -264,7 +298,10 @@ def build_markdown(results: dict[str, Any]) -> str:
         "",
         f"- Aggregate row count: `{summary['aggregate_row_count']}`",
         f"- Years: `{summary['min_year']}-{summary['max_year']}`",
-        f"- Included applications: `{summary['included_applications']}`",
+        f"- Included records: `{summary['included_records']}`",
+        f"- Application records: `{summary['included_application_records']}`",
+        f"- Purchased loans: `{summary['purchased_loans']}`",
+        f"- Included applications legacy field: `{summary['included_applications']}`",
         f"- Originated loans: `{summary['originated_loans']}`",
         f"- Denied applications: `{summary['denied_applications']}`",
         "",
@@ -275,6 +312,9 @@ def build_markdown(results: dict[str, Any]) -> str:
             [
                 "activity_year",
                 "county_count",
+                "total_records",
+                "application_records",
+                "purchased_loans",
                 "total_applications",
                 "originated_loans",
                 "denied_applications",
@@ -314,6 +354,7 @@ def build_markdown(results: dict[str, Any]) -> str:
         "## Notes",
         "",
         "- `county_year_lending` is the first geography-normalized aggregate and should be QAed before adding fintech lender classifications.",
+        "- The preferred denominator for application-style rates is `application_records`; `total_records` also includes purchased-loan records.",
         "- Missing-geography rows are not discarded silently; they are tracked in `county_year_lending_missing_geo_qa`.",
         "- Action code `7` is documented as a preapproval denial but is not included in `denied_applications`, which uses application denial code `3`.",
         "- Historic respondent IDs and post-2018 LEIs remain different identifier systems, so `lender_count` is useful within-year but not a cross-era lender identity resolution.",

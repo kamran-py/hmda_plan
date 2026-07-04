@@ -8,6 +8,8 @@ from typing import Any
 
 import duckdb
 
+from scripts.normalize_geography import STATE_CROSSWALK
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = PROJECT_ROOT / "data" / "duckdb" / "hmda_panel.duckdb"
@@ -25,8 +27,21 @@ LENDER_SAMPLE_CSV_PATH = OUTPUT_DIR / "lender_county_year_sample.csv"
 LENDER_CSV_GZ_PATH = OUTPUT_DIR / "lender_county_year.csv.gz"
 
 
+def state_name_case_sql(column_name: str = "state_fips_2") -> str:
+    case_lines = []
+    for state_fips, _state_abbr, state_name in STATE_CROSSWALK:
+        escaped_state_name = state_name.replace("'", "''")
+        case_lines.append(f"            WHEN {column_name} = '{state_fips}' THEN '{escaped_state_name}'")
+    cases = "\n".join(case_lines)
+    return f"CASE\n{cases}\n            ELSE NULL\n        END"
+
+
 def sql_literal(path: Path) -> str:
     return "'" + str(path).replace("'", "''") + "'"
+
+
+def repo_relative_path(path: Path) -> str:
+    return path.resolve().relative_to(PROJECT_ROOT).as_posix()
 
 
 def query_one(con: duckdb.DuckDBPyConnection, sql: str) -> Any:
@@ -78,7 +93,7 @@ def export_output(
         return {
             "label": label,
             "table_name": table_name,
-            "output_path": str(output_path),
+            "output_path": repo_relative_path(output_path),
             "format": output_format,
             "compression": compression,
             "status": "skipped_existing",
@@ -103,7 +118,7 @@ def export_output(
         return {
             "label": label,
             "table_name": table_name,
-            "output_path": str(output_path),
+            "output_path": repo_relative_path(output_path),
             "format": output_format,
             "compression": compression,
             "status": "exported",
@@ -117,7 +132,7 @@ def export_output(
         return {
             "label": label,
             "table_name": table_name,
-            "output_path": str(output_path),
+            "output_path": repo_relative_path(output_path),
             "format": output_format,
             "compression": compression,
             "status": "failed",
@@ -186,6 +201,8 @@ def write_docs(records: list[dict[str, Any]], row_counts: dict[str, int], includ
         "",
         "This export step creates researcher-facing files from existing DuckDB tables. It does not download data, delete raw or Parquet files, classify fintech lenders, or rebuild the database.",
         "",
+        "The small CSV outputs and manifest are committed for public review. The full lender-county-year Parquet export is generated locally and is not committed to GitHub.",
+        "",
         "## Source Row Counts",
         "",
         markdown_table(
@@ -204,7 +221,9 @@ def write_docs(records: list[dict[str, Any]], row_counts: dict[str, int], includ
         "",
         "`lender_county_year` is exported as Parquet by default because it has millions of rows. Parquet is smaller, typed, faster to read with DuckDB, R, Python, and other analytics tools, and avoids the large disk footprint and slower parsing of a raw CSV.",
         "",
-        "A 100,000-row CSV sample is exported for quick inspection in spreadsheet tools.",
+        "A 100,000-row CSV sample is exported for quick inspection in spreadsheet tools. The sample is stratified by `activity_year` so the public sample is not limited to the first year in sort order.",
+        "",
+        "Default exports include `state_name` alongside `state_fips_2`. County names require a county FIPS reference table and are intentionally not inferred from the five-digit FIPS code alone.",
         "",
         "## Full CSV Option",
         "",
@@ -222,30 +241,69 @@ def write_docs(records: list[dict[str, Any]], row_counts: dict[str, int], includ
 
 
 def planned_exports(include_large_csv: bool) -> list[tuple[str, str, Path, str, str]]:
+    state_name_expr = state_name_case_sql("state_fips_2")
+    county_query = f"""
+SELECT
+    activity_year,
+    state_fips_2,
+    {state_name_expr} AS state_name,
+    county_fips_5,
+    * EXCLUDE (activity_year, state_fips_2, county_fips_5)
+FROM {COUNTY_TABLE}
+ORDER BY activity_year, state_fips_2, county_fips_5
+""".strip()
+    lender_query = f"""
+SELECT
+    activity_year,
+    state_fips_2,
+    {state_name_expr} AS state_name,
+    county_fips_5,
+    lender_id,
+    * EXCLUDE (activity_year, state_fips_2, county_fips_5, lender_id)
+FROM {LENDER_TABLE}
+ORDER BY activity_year, state_fips_2, county_fips_5, lender_id
+""".strip()
+    lender_sample_query = f"""
+SELECT * EXCLUDE (sample_rank, sample_rows_per_year)
+FROM (
+    SELECT
+        activity_year,
+        state_fips_2,
+        {state_name_expr} AS state_name,
+        county_fips_5,
+        lender_id,
+        * EXCLUDE (activity_year, state_fips_2, county_fips_5, lender_id),
+        ROW_NUMBER() OVER (
+            PARTITION BY activity_year
+            ORDER BY state_fips_2, county_fips_5, lender_id
+        ) AS sample_rank,
+        CEIL({LENDER_SAMPLE_ROWS}::DOUBLE / COUNT(DISTINCT activity_year) OVER ()) AS sample_rows_per_year
+    FROM {LENDER_TABLE}
+)
+WHERE sample_rank <= sample_rows_per_year
+ORDER BY activity_year, state_fips_2, county_fips_5, lender_id
+LIMIT {LENDER_SAMPLE_ROWS}
+""".strip()
     exports = [
         (
             "county_year_lending_csv",
             COUNTY_TABLE,
             COUNTY_CSV_PATH,
-            f"SELECT * FROM {COUNTY_TABLE} ORDER BY activity_year, state_fips_2, county_fips_5",
+            county_query,
             "csv",
         ),
         (
             "lender_county_year_parquet",
             LENDER_TABLE,
             LENDER_PARQUET_PATH,
-            f"SELECT * FROM {LENDER_TABLE} ORDER BY activity_year, state_fips_2, county_fips_5, lender_id",
+            lender_query,
             "parquet",
         ),
         (
             "lender_county_year_sample_csv",
             LENDER_TABLE,
             LENDER_SAMPLE_CSV_PATH,
-            (
-                f"SELECT * FROM {LENDER_TABLE} "
-                "ORDER BY activity_year, state_fips_2, county_fips_5, lender_id "
-                f"LIMIT {LENDER_SAMPLE_ROWS}"
-            ),
+            lender_sample_query,
             "csv",
         ),
     ]
@@ -255,7 +313,7 @@ def planned_exports(include_large_csv: bool) -> list[tuple[str, str, Path, str, 
                 "lender_county_year_csv_gz",
                 LENDER_TABLE,
                 LENDER_CSV_GZ_PATH,
-                f"SELECT * FROM {LENDER_TABLE} ORDER BY activity_year, state_fips_2, county_fips_5, lender_id",
+                lender_query,
                 "csv.gz",
             )
         )

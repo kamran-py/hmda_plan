@@ -20,6 +20,15 @@ SELECT
     county_fips_5,
     lender_id,
     ANY_VALUE(lender_id_type) AS lender_id_type,
+    COUNT(*) AS records,
+    SUM(
+        CASE
+            WHEN TRIM(action_taken) IN ('1', '2', '3', '4', '5', '7', '8')
+            THEN 1
+            ELSE 0
+        END
+    ) AS application_records,
+    SUM(CASE WHEN TRIM(action_taken) = '6' THEN 1 ELSE 0 END) AS purchased_loans,
     COUNT(*) AS applications,
     SUM(CASE WHEN TRIM(action_taken) = '1' THEN 1 ELSE 0 END) AS originated_loans,
     SUM(CASE WHEN TRIM(action_taken) = '3' THEN 1 ELSE 0 END) AS denied_applications,
@@ -168,6 +177,9 @@ def build_aggregate() -> dict[str, Any]:
                 COUNT(*) AS row_count,
                 MIN(activity_year) AS min_year,
                 MAX(activity_year) AS max_year,
+                SUM(records) AS records,
+                SUM(application_records) AS application_records,
+                SUM(purchased_loans) AS purchased_loans,
                 SUM(applications) AS applications,
                 SUM(originated_loans) AS originated_loans,
                 SUM(denied_applications) AS denied_applications,
@@ -183,6 +195,9 @@ def build_aggregate() -> dict[str, Any]:
                 COUNT(*) AS lender_county_rows,
                 COUNT(DISTINCT county_fips_5) AS county_count,
                 COUNT(DISTINCT lender_id) AS lender_count,
+                SUM(records) AS records,
+                SUM(application_records) AS application_records,
+                SUM(purchased_loans) AS purchased_loans,
                 SUM(applications) AS applications,
                 SUM(originated_loans) AS originated_loans,
                 SUM(denied_applications) AS denied_applications,
@@ -243,7 +258,7 @@ def build_aggregate() -> dict[str, Any]:
                 GROUP BY activity_year
             ),
             main AS (
-                SELECT activity_year, SUM(applications) AS main_applications
+                SELECT activity_year, SUM(records) AS main_records
                 FROM lender_county_year
                 GROUP BY activity_year
             ),
@@ -260,8 +275,8 @@ def build_aggregate() -> dict[str, Any]:
             SELECT
                 source.activity_year,
                 source.expected_main_rows,
-                main.main_applications,
-                main.main_applications - source.expected_main_rows AS main_difference,
+                main.main_records,
+                main.main_records - source.expected_main_rows AS main_difference,
                 source.expected_missing_lender_rows,
                 COALESCE(missing_lender.qa_missing_lender_rows, 0) AS qa_missing_lender_rows,
                 COALESCE(missing_lender.qa_missing_lender_rows, 0) - source.expected_missing_lender_rows AS missing_lender_difference,
@@ -299,7 +314,15 @@ def build_aggregate() -> dict[str, Any]:
     finally:
         con.close()
 
-    for column in ["row_count", "applications", "originated_loans", "denied_applications"]:
+    for column in [
+        "row_count",
+        "records",
+        "application_records",
+        "purchased_loans",
+        "applications",
+        "originated_loans",
+        "denied_applications",
+    ]:
         summary[column] = fmt_int(summary[column])
     summary["total_loan_amount"] = fmt_float(summary["total_loan_amount"])
 
@@ -309,6 +332,9 @@ def build_aggregate() -> dict[str, Any]:
             "lender_county_rows",
             "county_count",
             "lender_count",
+            "records",
+            "application_records",
+            "purchased_loans",
             "applications",
             "originated_loans",
             "denied_applications",
@@ -324,7 +350,7 @@ def build_aggregate() -> dict[str, Any]:
         reconciliation,
         [
             "expected_main_rows",
-            "main_applications",
+            "main_records",
             "main_difference",
             "expected_missing_lender_rows",
             "qa_missing_lender_rows",
@@ -386,7 +412,10 @@ def build_markdown(results: dict[str, Any]) -> str:
         "",
         "## Metrics",
         "",
-        "- `applications`: count of loan-level rows at the lender-county-year grain.",
+        "- `records`: count of loan-level HMDA records at the lender-county-year grain.",
+        "- `application_records`: count of non-purchase action records with `action_taken` in `1`, `2`, `3`, `4`, `5`, `7`, or `8`.",
+        "- `purchased_loans`: rows where `action_taken = '6'`.",
+        "- `applications`: legacy alias for `records`, retained for backward compatibility with the first public export.",
         "- `originated_loans`: rows where `action_taken = '1'`.",
         "- `denied_applications`: rows where `action_taken = '3'`.",
         "- `total_loan_amount`: sum of normalized `loan_amount`.",
@@ -399,7 +428,10 @@ def build_markdown(results: dict[str, Any]) -> str:
         "",
         f"- Row count: `{summary['row_count']}`",
         f"- Years: `{summary['min_year']}-{summary['max_year']}`",
-        f"- Applications: `{summary['applications']}`",
+        f"- Records: `{summary['records']}`",
+        f"- Application records: `{summary['application_records']}`",
+        f"- Purchased loans: `{summary['purchased_loans']}`",
+        f"- Applications legacy field: `{summary['applications']}`",
         f"- Originated loans: `{summary['originated_loans']}`",
         f"- Denied applications: `{summary['denied_applications']}`",
         f"- Total loan amount: `{summary['total_loan_amount']}`",
@@ -419,6 +451,9 @@ def build_markdown(results: dict[str, Any]) -> str:
                 "lender_county_rows",
                 "county_count",
                 "lender_count",
+                "records",
+                "application_records",
+                "purchased_loans",
                 "applications",
                 "originated_loans",
                 "denied_applications",
@@ -433,7 +468,7 @@ def build_markdown(results: dict[str, Any]) -> str:
             [
                 "activity_year",
                 "expected_main_rows",
-                "main_applications",
+                "main_records",
                 "main_difference",
                 "expected_missing_lender_rows",
                 "qa_missing_lender_rows",
@@ -479,6 +514,7 @@ def build_markdown(results: dict[str, Any]) -> str:
             "## Notes",
             "",
             "- `lender_county_year` is suitable for lender-level geography expansion analysis but does not identify fintech lenders.",
+            "- The preferred denominator for application-style rates is `application_records`; `records` also includes purchased-loan records.",
             "- Historic respondent IDs and post-2018 LEIs remain different identifier systems; cross-era lender matching requires a separate crosswalk.",
             "- The current canonical database does not include lender names.",
         ]

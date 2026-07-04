@@ -92,6 +92,9 @@ def build_audit() -> dict[str, Any]:
                 MIN(activity_year) AS min_year,
                 MAX(activity_year) AS max_year,
                 COUNT(DISTINCT activity_year) AS year_count,
+                SUM(total_records) AS total_records,
+                SUM(application_records) AS application_records,
+                SUM(purchased_loans) AS purchased_loans,
                 SUM(total_applications) AS total_applications,
                 SUM(originated_loans) AS originated_loans,
                 SUM(denied_applications) AS denied_applications,
@@ -105,6 +108,9 @@ def build_audit() -> dict[str, Any]:
             SELECT
                 activity_year,
                 COUNT(*) AS county_count,
+                SUM(total_records) AS total_records,
+                SUM(application_records) AS application_records,
+                SUM(purchased_loans) AS purchased_loans,
                 SUM(total_applications) AS total_applications,
                 SUM(originated_loans) AS originated_loans,
                 SUM(denied_applications) AS denied_applications,
@@ -143,7 +149,7 @@ def build_audit() -> dict[str, Any]:
                 SELECT
                     activity_year,
                     COUNT(*) AS loan_years_geo_rows,
-                    SUM(CASE WHEN county_fips_5 IS NOT NULL THEN 1 ELSE 0 END) AS expected_included_applications,
+                    SUM(CASE WHEN county_fips_5 IS NOT NULL THEN 1 ELSE 0 END) AS expected_included_records,
                     SUM(CASE WHEN county_fips_5 IS NULL THEN 1 ELSE 0 END) AS expected_excluded_missing_geo
                 FROM loan_years_geo
                 GROUP BY activity_year
@@ -151,7 +157,7 @@ def build_audit() -> dict[str, Any]:
             agg AS (
                 SELECT
                     activity_year,
-                    SUM(total_applications) AS aggregate_included_applications
+                    SUM(total_records) AS aggregate_included_records
                 FROM county_year_lending
                 GROUP BY activity_year
             ),
@@ -165,9 +171,9 @@ def build_audit() -> dict[str, Any]:
             SELECT
                 geo.activity_year,
                 geo.loan_years_geo_rows,
-                geo.expected_included_applications,
-                agg.aggregate_included_applications,
-                agg.aggregate_included_applications - geo.expected_included_applications AS included_difference,
+                geo.expected_included_records,
+                agg.aggregate_included_records,
+                agg.aggregate_included_records - geo.expected_included_records AS included_difference,
                 geo.expected_excluded_missing_geo,
                 missing.qa_excluded_missing_geo,
                 missing.qa_excluded_missing_geo - geo.expected_excluded_missing_geo AS excluded_difference
@@ -183,12 +189,12 @@ def build_audit() -> dict[str, Any]:
             WITH geo AS (
                 SELECT
                     COUNT(*) AS loan_years_geo_rows,
-                    SUM(CASE WHEN county_fips_5 IS NOT NULL THEN 1 ELSE 0 END) AS expected_included_applications,
+                    SUM(CASE WHEN county_fips_5 IS NOT NULL THEN 1 ELSE 0 END) AS expected_included_records,
                     SUM(CASE WHEN county_fips_5 IS NULL THEN 1 ELSE 0 END) AS expected_excluded_missing_geo
                 FROM loan_years_geo
             ),
             agg AS (
-                SELECT SUM(total_applications) AS aggregate_included_applications
+                SELECT SUM(total_records) AS aggregate_included_records
                 FROM county_year_lending
             ),
             missing AS (
@@ -197,9 +203,9 @@ def build_audit() -> dict[str, Any]:
             )
             SELECT
                 geo.loan_years_geo_rows,
-                geo.expected_included_applications,
-                agg.aggregate_included_applications,
-                agg.aggregate_included_applications - geo.expected_included_applications AS included_difference,
+                geo.expected_included_records,
+                agg.aggregate_included_records,
+                agg.aggregate_included_records - geo.expected_included_records AS included_difference,
                 geo.expected_excluded_missing_geo,
                 missing.qa_excluded_missing_geo,
                 missing.qa_excluded_missing_geo - geo.expected_excluded_missing_geo AS excluded_difference
@@ -273,7 +279,6 @@ def build_audit() -> dict[str, Any]:
                 COALESCE(NULLIF(TRIM(action_taken), ''), '<missing>') AS action_taken,
                 COUNT(*) AS row_count
             FROM loan_years_geo
-            WHERE activity_year IN (2007, 2018, 2024)
             GROUP BY activity_year, source_era, COALESCE(NULLIF(TRIM(action_taken), ''), '<missing>')
             ORDER BY
                 activity_year,
@@ -287,6 +292,9 @@ def build_audit() -> dict[str, Any]:
     for key in [
         "row_count",
         "year_count",
+        "total_records",
+        "application_records",
+        "purchased_loans",
         "total_applications",
         "originated_loans",
         "denied_applications",
@@ -300,15 +308,23 @@ def build_audit() -> dict[str, Any]:
 
     format_int_columns(
         county_by_year,
-        ["county_count", "total_applications", "originated_loans", "denied_applications"],
+        [
+            "county_count",
+            "total_records",
+            "application_records",
+            "purchased_loans",
+            "total_applications",
+            "originated_loans",
+            "denied_applications",
+        ],
     )
     format_float_columns(county_by_year, ["total_loan_amount"])
     format_int_columns(
         reconciliation_by_year,
         [
             "loan_years_geo_rows",
-            "expected_included_applications",
-            "aggregate_included_applications",
+            "expected_included_records",
+            "aggregate_included_records",
             "included_difference",
             "expected_excluded_missing_geo",
             "qa_excluded_missing_geo",
@@ -362,7 +378,10 @@ def build_markdown(results: dict[str, Any]) -> str:
         f"- Row count: `{summary['row_count']}`",
         f"- Years covered: `{summary['min_year']}-{summary['max_year']}`",
         f"- Year count: `{summary['year_count']}`",
-        f"- Total applications: `{summary['total_applications']}`",
+        f"- Total records: `{summary['total_records']}`",
+        f"- Application records: `{summary['application_records']}`",
+        f"- Purchased loans: `{summary['purchased_loans']}`",
+        f"- Total applications legacy field: `{summary['total_applications']}`",
         f"- Originated loans: `{summary['originated_loans']}`",
         f"- Denied applications: `{summary['denied_applications']}`",
         f"- Total loan amount: `{summary['total_loan_amount']}`",
@@ -380,6 +399,9 @@ def build_markdown(results: dict[str, Any]) -> str:
             [
                 "activity_year",
                 "county_count",
+                "total_records",
+                "application_records",
+                "purchased_loans",
                 "total_applications",
                 "originated_loans",
                 "denied_applications",
@@ -389,7 +411,7 @@ def build_markdown(results: dict[str, Any]) -> str:
         "",
         "## Reconciliation Against Loan-Level Geography",
         "",
-        "The aggregate should equal `loan_years_geo` rows where `county_fips_5` is present. Excluded rows should equal `county_year_lending_missing_geo_qa`.",
+        "The aggregate record count should equal `loan_years_geo` rows where `county_fips_5` is present. Excluded rows should equal `county_year_lending_missing_geo_qa`.",
         "",
         markdown_table([results["reconciliation_total"]], list(results["reconciliation_total"].keys())),
         "",
@@ -398,8 +420,8 @@ def build_markdown(results: dict[str, Any]) -> str:
             [
                 "activity_year",
                 "loan_years_geo_rows",
-                "expected_included_applications",
-                "aggregate_included_applications",
+                "expected_included_records",
+                "aggregate_included_records",
                 "included_difference",
                 "expected_excluded_missing_geo",
                 "qa_excluded_missing_geo",
@@ -437,6 +459,8 @@ def build_markdown(results: dict[str, Any]) -> str:
         "",
         "- Originated loans count `action_taken = '1'`.",
         "- Denied applications count `action_taken = '3'`.",
+        "- Application records count non-purchase action records with `action_taken` in `1`, `2`, `3`, `4`, `5`, `7`, or `8`.",
+        "- Purchased loans count `action_taken = '6'` and are excluded from `application_records`.",
         "- Action code `7` is documented as preapproval denied but is not included in `denied_applications`.",
         "",
         markdown_table(
@@ -444,7 +468,7 @@ def build_markdown(results: dict[str, Any]) -> str:
             ["source_era", "action_taken", "action_description", "counts_as_origination", "counts_as_denial"],
         ),
         "",
-        "## Representative Action Taken Counts",
+        "## Action Taken Counts By Year",
         "",
         markdown_table(
             results["action_counts"],
@@ -454,7 +478,7 @@ def build_markdown(results: dict[str, Any]) -> str:
         "## Readiness Notes",
         "",
         "- `county_year_lending` passes grain uniqueness and non-null key checks.",
-        "- County-level aggregate totals reconcile to `loan_years_geo` rows with usable `county_fips_5`.",
+        "- County-level aggregate record totals reconcile to `loan_years_geo` rows with usable `county_fips_5`.",
         "- Lender IDs are available for all years, but name fields are not present in the current canonical view.",
         "- Fintech classification should therefore start from `lender_id` plus an external or separately sourced lender-name/classification crosswalk.",
     ]

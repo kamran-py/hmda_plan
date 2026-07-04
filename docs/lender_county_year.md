@@ -23,7 +23,10 @@ This step creates the first lender-county-year aggregate from `loan_years_geo`. 
 
 ## Metrics
 
-- `applications`: count of loan-level rows at the lender-county-year grain.
+- `records`: count of loan-level HMDA records at the lender-county-year grain.
+- `application_records`: count of non-purchase action records with `action_taken` in `1`, `2`, `3`, `4`, `5`, `7`, or `8`.
+- `purchased_loans`: rows where `action_taken = '6'`.
+- `applications`: legacy alias for `records`, retained for backward compatibility with the first public export.
 - `originated_loans`: rows where `action_taken = '1'`.
 - `denied_applications`: rows where `action_taken = '3'`.
 - `total_loan_amount`: sum of normalized `loan_amount`.
@@ -36,7 +39,10 @@ This step creates the first lender-county-year aggregate from `loan_years_geo`. 
 
 - Row count: `8,923,506`
 - Years: `2007-2024`
-- Applications: `305,141,850`
+- Records: `305,141,850`
+- Application records: `259,119,806`
+- Purchased loans: `46,022,044`
+- Applications legacy field: `305,141,850`
 - Originated loans: `155,554,418`
 - Denied applications: `48,614,948`
 - Total loan amount: `75,734,874,727,000`
@@ -53,30 +59,30 @@ This step creates the first lender-county-year aggregate from `loan_years_geo`. 
 
 ## Lender-County-Year Counts By Year
 
-| activity_year | lender_county_rows | county_count | lender_count | applications | originated_loans | denied_applications | total_loan_amount |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 2007 | 563,296 | 3,218 | 8,335 | 25,810,685 | 10,363,770 | 5,819,928 | 5,146,875,752,000 |
-| 2008 | 470,810 | 3,219 | 8,118 | 16,749,950 | 7,092,935 | 3,789,609 | 3,350,860,801,000 |
-| 2009 | 453,382 | 3,218 | 7,872 | 18,904,271 | 8,839,646 | 2,870,671 | 3,812,953,809,000 |
-| 2010 | 410,419 | 3,218 | 7,683 | 15,977,069 | 7,810,204 | 2,482,053 | 3,313,976,640,000 |
-| 2011 | 410,564 | 3,219 | 7,477 | 14,546,297 | 7,056,938 | 2,308,251 | 2,992,138,358,000 |
-| 2012 | 449,912 | 3,220 | 7,250 | 18,338,628 | 9,739,921 | 2,718,055 | 3,872,898,552,000 |
-| 2013 | 455,729 | 3,220 | 7,053 | 16,667,382 | 8,678,842 | 2,607,088 | 3,786,987,064,000 |
-| 2014 | 435,891 | 3,218 | 6,925 | 11,729,108 | 6,019,168 | 2,018,466 | 2,536,226,723,000 |
-| 2015 | 465,895 | 3,217 | 6,787 | 14,075,664 | 7,383,304 | 2,232,849 | 3,297,102,667,000 |
-| 2016 | 491,666 | 3,219 | 6,640 | 16,055,239 | 8,358,154 | 2,645,324 | 3,939,731,541,000 |
-| 2017 | 496,209 | 3,220 | 5,758 | 14,039,899 | 7,324,077 | 1,971,050 | 3,488,812,000,000 |
-| 2018 | 504,818 | 3,261 | 5,667 | 14,780,569 | 7,697,135 | 2,479,327 | 3,535,319,885,000 |
-| 2019 | 527,478 | 3,223 | 5,525 | 17,228,582 | 9,308,852 | 2,462,341 | 4,618,373,140,000 |
-| 2020 | 582,303 | 3,222 | 4,499 | 25,397,139 | 14,608,161 | 2,813,404 | 7,776,721,675,000 |
-| 2021 | 615,122 | 3,223 | 4,349 | 25,971,175 | 15,047,525 | 2,900,186 | 7,885,035,955,000 |
-| 2022 | 573,171 | 3,224 | 4,456 | 15,680,679 | 8,368,999 | 2,451,649 | 5,224,483,635,000 |
-| 2023 | 506,792 | 3,224 | 5,085 | 11,226,505 | 5,686,639 | 1,991,157 | 3,404,933,745,000 |
-| 2024 | 510,049 | 3,223 | 4,880 | 11,963,009 | 6,170,148 | 2,053,540 | 3,751,442,785,000 |
+| activity_year | lender_county_rows | county_count | lender_count | records | application_records | purchased_loans | applications | originated_loans | denied_applications | total_loan_amount |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2007 | 563,296 | 3,218 | 8,335 | 25,810,685 | 21,072,710 | 4,737,975 | 25,810,685 | 10,363,770 | 5,819,928 | 5,146,875,752,000 |
+| 2008 | 470,810 | 3,219 | 8,118 | 16,749,950 | 13,849,145 | 2,900,805 | 16,749,950 | 7,092,935 | 3,789,609 | 3,350,860,801,000 |
+| 2009 | 453,382 | 3,218 | 7,872 | 18,904,271 | 14,626,912 | 4,277,359 | 18,904,271 | 8,839,646 | 2,870,671 | 3,812,953,809,000 |
+| 2010 | 410,419 | 3,218 | 7,683 | 15,977,069 | 12,756,506 | 3,220,563 | 15,977,069 | 7,810,204 | 2,482,053 | 3,313,976,640,000 |
+| 2011 | 410,564 | 3,219 | 7,477 | 14,546,297 | 11,610,525 | 2,935,772 | 14,546,297 | 7,056,938 | 2,308,251 | 2,992,138,358,000 |
+| 2012 | 449,912 | 3,220 | 7,250 | 18,338,628 | 15,174,893 | 3,163,735 | 18,338,628 | 9,739,921 | 2,718,055 | 3,872,898,552,000 |
+| 2013 | 455,729 | 3,220 | 7,053 | 16,667,382 | 13,875,206 | 2,792,176 | 16,667,382 | 8,678,842 | 2,607,088 | 3,786,987,064,000 |
+| 2014 | 435,891 | 3,218 | 6,925 | 11,729,108 | 9,934,128 | 1,794,980 | 11,729,108 | 6,019,168 | 2,018,466 | 2,536,226,723,000 |
+| 2015 | 465,895 | 3,217 | 6,787 | 14,075,664 | 11,975,714 | 2,099,950 | 14,075,664 | 7,383,304 | 2,232,849 | 3,297,102,667,000 |
+| 2016 | 491,666 | 3,219 | 6,640 | 16,055,239 | 13,826,628 | 2,228,611 | 16,055,239 | 8,358,154 | 2,645,324 | 3,939,731,541,000 |
+| 2017 | 496,209 | 3,220 | 5,758 | 14,039,899 | 11,955,535 | 2,084,364 | 14,039,899 | 7,324,077 | 1,971,050 | 3,488,812,000,000 |
+| 2018 | 504,818 | 3,261 | 5,667 | 14,780,569 | 12,770,422 | 2,010,147 | 14,780,569 | 7,697,135 | 2,479,327 | 3,535,319,885,000 |
+| 2019 | 527,478 | 3,223 | 5,525 | 17,228,582 | 14,958,693 | 2,269,889 | 17,228,582 | 9,308,852 | 2,462,341 | 4,618,373,140,000 |
+| 2020 | 582,303 | 3,222 | 4,499 | 25,397,139 | 22,621,049 | 2,776,090 | 25,397,139 | 14,608,161 | 2,813,404 | 7,776,721,675,000 |
+| 2021 | 615,122 | 3,223 | 4,349 | 25,971,175 | 23,273,062 | 2,698,113 | 25,971,175 | 15,047,525 | 2,900,186 | 7,885,035,955,000 |
+| 2022 | 573,171 | 3,224 | 4,456 | 15,680,679 | 14,180,296 | 1,500,383 | 15,680,679 | 8,368,999 | 2,451,649 | 5,224,483,635,000 |
+| 2023 | 506,792 | 3,224 | 5,085 | 11,226,505 | 9,971,284 | 1,255,221 | 11,226,505 | 5,686,639 | 1,991,157 | 3,404,933,745,000 |
+| 2024 | 510,049 | 3,223 | 4,880 | 11,963,009 | 10,687,098 | 1,275,911 | 11,963,009 | 6,170,148 | 2,053,540 | 3,751,442,785,000 |
 
 ## Reconciliation
 
-| activity_year | expected_main_rows | main_applications | main_difference | expected_missing_lender_rows | qa_missing_lender_rows | missing_lender_difference | expected_missing_geo_rows | qa_missing_geo_rows | missing_geo_difference |
+| activity_year | expected_main_rows | main_records | main_difference | expected_missing_lender_rows | qa_missing_lender_rows | missing_lender_difference | expected_missing_geo_rows | qa_missing_geo_rows | missing_geo_difference |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2007 | 25,810,685 | 25,810,685 | 0 | 0 | 0 | 0 | 795,010 | 795,010 | 0 |
 | 2008 | 16,749,950 | 16,749,950 | 0 | 0 | 0 | 0 | 641,620 | 641,620 | 0 |
@@ -127,5 +133,6 @@ No rows with usable county geography and missing lender IDs were found.
 ## Notes
 
 - `lender_county_year` is suitable for lender-level geography expansion analysis but does not identify fintech lenders.
+- The preferred denominator for application-style rates is `application_records`; `records` also includes purchased-loan records.
 - Historic respondent IDs and post-2018 LEIs remain different identifier systems; cross-era lender matching requires a separate crosswalk.
 - The current canonical database does not include lender names.

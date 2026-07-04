@@ -12,7 +12,7 @@ The final research-ready tables are:
 - `lender_county_year`: 8,923,506 lender-county-year rows.
 - `loan_years_geo`: a geography-normalized loan-level view over 312,095,276 rows.
 
-The current dataset can support descriptive county-year lending trends, county-level lending volumes, lender market presence by county, lender-county-year panel construction, and preparatory work for entry/exit or geographic expansion analysis.
+The current dataset can support descriptive county-year lending trends, county-level lending volumes, lender market presence by county, lender-county-year panel construction, and preparatory work for entry/exit or geographic expansion analysis. The aggregate tables now separate all HMDA records from non-purchase application records, so application-style rates can use `application_records` rather than purchased-loan-inclusive totals.
 
 The current dataset does not yet support definitive fintech classification. Explicit lender-name fields are not available in the constructed canonical data, and no lender-name or lender-classification crosswalk has been added. Fintech lender shares, fintech entry, and fintech-specific causal analysis require external lender identity enrichment before they can be computed credibly.
 
@@ -102,7 +102,7 @@ The county-year aggregate unit is:
 activity_year x state_fips_2 x county_fips_5
 ```
 
-This table supports county-level panel analysis of mortgage applications, originations, denials, total loan amounts, average loan amounts, median loan amounts, and lender counts.
+This table supports county-level panel analysis of HMDA record volumes, non-purchase application records, purchased loans, originations, denials, total loan amounts, average loan amounts, median loan amounts, and lender counts.
 
 The lender-county-year aggregate unit is:
 
@@ -122,7 +122,10 @@ This table supports lender market presence analysis, lender entry and exit by co
 | `lender_id_type` | Identifier system label. | `respondent_id` before 2018; `lei` from 2018 onward. | Needed for lender continuity work. |
 | `state_fips_2` | Normalized two-digit state FIPS. | Pre-2018 numeric/FIPS-style state codes are left-padded; post-2018 two-letter abbreviations are mapped through `state_fips_crosswalk`, with county-prefix fallback for valid five-digit county FIPS records. | Missing state remains when state and usable county geography are absent. |
 | `county_fips_5` | Normalized five-digit county FIPS. | Pre-2018 combines state FIPS with 1-3 digit county components; post-2018 uses valid five-digit county codes directly. | Rows with missing county geography are excluded from county-level main aggregates. |
-| `applications` / `total_applications` | Count of loan-level rows in the aggregate cell. | Same aggregation logic across eras after canonicalization. | Interpret as HMDA records under the action-code and coverage definitions of the source data. |
+| `records` / `total_records` | Count of loan-level HMDA rows in the aggregate cell. | Same aggregation logic across eras after canonicalization. | Includes purchased-loan records and should not be interpreted as a strict application denominator. |
+| `application_records` | Count of non-purchase action records with `action_taken` in `1`, `2`, `3`, `4`, `5`, `7`, or `8`. | Same action-code logic across eras after canonicalization. | Preferred denominator for application-style descriptive rates. |
+| `purchased_loans` | Count where `action_taken = '6'`. | Same code used in both eras. | Excluded from `application_records`; retained separately because purchases are HMDA records but not new applications. |
+| `applications` / `total_applications` | Legacy alias for `records` / `total_records`. | Same aggregation logic across eras after canonicalization. | Retained for backward compatibility with the first public export. |
 | `originated_loans` | Count where `action_taken = '1'`. | Same code used in both eras. | Depends on HMDA action-code consistency. |
 | `denied_applications` | Count where `action_taken = '3'`. | Same code used in both eras. | Preapproval denial code `7` is documented but not included. |
 | `total_loan_amount` | Sum of canonical `loan_amount`. | Pre-2018 `loan_amount_000s` is multiplied by 1,000; post-2018 `loan_amount` is cast directly. | Loan amount definitions should be checked before interpreting levels across eras. |
@@ -188,7 +191,7 @@ The aggregation logic uses the following action-code mapping:
 
 The `action_taken_metadata` table has 16 rows: eight action codes for `pre_2018` and eight for `post_2018`. Codes `1` and `3` are treated consistently across the two source eras for the current aggregate definitions.
 
-This mapping matters because action-code definitions determine which records are counted as applications, originations, and denials. Preapproval outcomes are not the same as standard application denials, so code `7` is documented separately rather than folded into `denied_applications`. Remaining caveats are that HMDA action-code interpretation and reporting context may vary across time and should be checked before using denial rates as causal outcomes.
+This mapping matters because action-code definitions determine which records are counted as records, application records, originations, purchases, and denials. Preapproval outcomes are not the same as standard application denials, so code `7` is documented separately rather than folded into `denied_applications`. Remaining caveats are that HMDA action-code interpretation and reporting context may vary across time and should be checked before using denial rates as causal outcomes.
 
 ## 10. Lender Identifier Construction
 
@@ -298,7 +301,9 @@ Headline QA numbers:
 | Year range | 2007-2024 |
 | Conversion metadata records | 18 |
 | Conversion metadata error count | 0 |
-| Included applications in `county_year_lending` | 305,141,850 |
+| Included records in `county_year_lending` | 305,141,850 |
+| Included application records in `county_year_lending` | 259,119,806 |
+| Purchased loans in `county_year_lending` | 46,022,044 |
 | Excluded missing-geography rows | 6,953,426 |
 | `county_year_lending` rows | 58,006 |
 | `lender_county_year` rows | 8,923,506 |
@@ -309,18 +314,18 @@ Headline QA numbers:
 | Lender-county-year duplicate grain rows | 0 |
 | Lender-county-year null main-table keys | 0 |
 
-Export validation confirmed that `output/lender_county_year.parquet` can be read by DuckDB and contains 8,923,506 rows, years 2007-2024, 18 distinct years, and 24 columns.
+Export validation confirmed that `output/lender_county_year.parquet` can be read by DuckDB and contains 8,923,506 rows, years 2007-2024, 18 distinct years, and 28 columns.
 
 ## 14. Final Exported Outputs
 
 | file | format | rows | size bytes | intended use | format rationale |
 | --- | --- | ---: | ---: | --- | --- |
-| `output/county_year_lending.csv` | CSV | 58,006 | 3,975,752 | County-year analysis and easy inspection. | Small enough for CSV. |
-| `output/lender_county_year.parquet` | Parquet | 8,923,506 | 129,077,088 | Lender-county-year analysis and large-table workflows. | Large table; Parquet preserves types and is more efficient for analytics. |
-| `output/lender_county_year_sample.csv` | CSV | 100,000 | 10,369,968 | Spreadsheet-friendly inspection sample. | Sample CSV avoids exporting the full large table as raw CSV. |
-| `output/export_manifest.csv` | CSV | 3 | 725 | Export audit trail. | Small manifest table. |
+| `output/county_year_lending.csv` | CSV | 58,006 | 5,234,258 | County-year analysis and easy inspection. | Small enough for CSV; includes `state_name` and denominator fields. |
+| `output/lender_county_year.parquet` | Parquet | 8,923,506 | 148,010,525 | Lender-county-year analysis and large-table workflows. | Large table; Parquet preserves types and is more efficient for analytics. |
+| `output/lender_county_year_sample.csv` | CSV | 100,000 | 11,628,586 | Spreadsheet-friendly inspection sample. | Year-stratified sample avoids exporting the full large table as raw CSV. |
+| `output/export_manifest.csv` | CSV | 3 | 650 | Export audit trail. | Small manifest table. |
 
-The full lender-county-year table is exported as Parquet because it has millions of rows and should remain columnar. A full compressed CSV can be created later with `python -m scripts.export_tables --include-large-csv`, but it was not created in the default export run.
+The full lender-county-year table is exported as Parquet because it has millions of rows and should remain columnar. The public CSV sample is stratified by `activity_year` rather than taking the first rows in sort order. A full compressed CSV can be created later with `python -m scripts.export_tables --include-large-csv`, but it was not created in the default export run.
 
 Only the small CSV exports and export manifest are committed to GitHub. The full `output/lender_county_year.parquet` export is generated locally by `python -m scripts.export_tables` and is excluded from GitHub by `.gitignore`.
 

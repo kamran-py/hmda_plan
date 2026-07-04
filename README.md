@@ -26,7 +26,8 @@ For the full research-methods memo, see [docs/final_summary.md](docs/final_summa
 - Years covered: 18, from 2007 through 2024.
 - County-year rows: 58,006.
 - Lender-county-year rows: 8,923,506.
-- Applications included in the county-year aggregate: 305,141,850.
+- HMDA records included in the county-year aggregate: 305,141,850.
+- Non-purchase application records included in the county-year aggregate: 259,119,806.
 - Rows excluded due to missing geography: 6,953,426.
 
 ## Outputs
@@ -37,8 +38,8 @@ These files are small enough to keep in GitHub and are available after cloning t
 
 | path | format | rows | purpose |
 | --- | --- | ---: | --- |
-| `output/county_year_lending.csv` | CSV | 58,006 | Main county-year panel for direct inspection and analysis. |
-| `output/lender_county_year_sample.csv` | CSV | 100,000 | Sample from the larger lender-county-year panel. |
+| `output/county_year_lending.csv` | CSV | 58,006 | Main county-year panel for direct inspection and analysis; includes `state_name`, `total_records`, `application_records`, and `purchased_loans`. |
+| `output/lender_county_year_sample.csv` | CSV | 100,000 | Year-stratified sample from the larger lender-county-year panel. |
 | `output/export_manifest.csv` | CSV | 3 | Export audit trail with row counts and file sizes. |
 
 ### Generated Local Outputs
@@ -151,6 +152,7 @@ python -m scripts.export_tables
 - Pre-2018 lender IDs use `respondent_id`; post-2018 lender IDs use LEI.
 - The canonical database has lender IDs but no lender names.
 - Fintech classification requires external lender identity enrichment.
+- `total_records` counts all HMDA records at the aggregate grain; `application_records` excludes purchased-loan records with `action_taken = '6'`.
 - Rows with missing county geography are excluded from the main county-level aggregates and preserved in QA tables.
 - The current output is a research data foundation, not a final causal estimate.
 - This run used a raw-first download approach. Future production runs should prefer year-at-a-time processing: download or stream one year, convert to Parquet, validate, and optionally remove the raw intermediate.
@@ -170,6 +172,7 @@ python -m scripts.export_tables
 - [docs/county_year_lending.md](docs/county_year_lending.md): county-year aggregate documentation.
 - [docs/lender_county_year.md](docs/lender_county_year.md): lender-county-year aggregate documentation.
 - [docs/export_outputs.md](docs/export_outputs.md): exported file documentation.
+- [docs/committed_output_profile.md](docs/committed_output_profile.md): quick profile of the committed CSV outputs.
 - [docs/research_readiness_audit.md](docs/research_readiness_audit.md): readiness checks for lender-level and county-level analysis.
 - [docs/schema_audit.md](docs/schema_audit.md): annual Parquet schema audit.
 - [docs/plan.md](docs/plan.md): implementation plan.
