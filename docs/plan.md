@@ -87,16 +87,18 @@ Fintech and nonbank lender identifiers require a separate lender classification 
 
 Initial aggregate candidates:
 
-- total applications
+- total HMDA records
+- non-purchase application/action records
+- purchased loans
 - originated loans
 - denied applications
 - total loan amount
 - average loan amount
 - lender count
 - fintech lender count
-- fintech application count
+- fintech application-record count
 - fintech origination count
-- fintech share of applications
+- fintech share of application records
 - fintech share of originations
 
 Fintech-specific measures depend on resolving the lender classification question.

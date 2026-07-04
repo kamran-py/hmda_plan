@@ -4,7 +4,7 @@
 
 This project built a reproducible HMDA data engineering pipeline for mortgage-lending analysis over 2007-2024. The pipeline starts from public HMDA loan-level files, converts annual raw files into Parquet, builds a DuckDB database, normalizes geography across the 2018 schema break, creates county-year and lender-county-year aggregates, and exports analysis-ready files.
 
-HMDA is large and difficult to process because each annual file contains millions of loan-level application records. This run processed 312,095,276 loan-level rows across 18 years. Raw files totaled 51,723,943,287 bytes, while the annual Parquet intermediates totaled 7,328,201,304 bytes. The scale makes full-file pandas workflows inappropriate for the main pipeline. DuckDB and Parquet were used because they support large columnar scans, SQL aggregation, typed storage, resumable annual processing, and compact intermediate outputs.
+HMDA is large and difficult to process because each annual file contains millions of loan-level HMDA records, including applications, originations, purchases, denials, withdrawals, and other action statuses. This run processed 312,095,276 loan-level rows across 18 years. Raw files totaled 51,723,943,287 bytes, while the annual Parquet intermediates totaled 7,328,201,304 bytes. The scale makes full-file pandas workflows inappropriate for the main pipeline. DuckDB and Parquet were used because they support large columnar scans, SQL aggregation, typed storage, resumable annual processing, and compact intermediate outputs.
 
 The final research-ready tables are:
 
@@ -94,7 +94,7 @@ The final DuckDB database is `data/duckdb/hmda_panel.duckdb`. Its file size is 3
 
 ## 6. Unit Of Observation And Panel Structure
 
-The source unit is one HMDA loan/application record as represented in the annual HMDA files.
+The source unit is one HMDA loan-level record as represented in the annual HMDA files.
 
 The county-year aggregate unit is:
 
@@ -102,7 +102,7 @@ The county-year aggregate unit is:
 activity_year x state_fips_2 x county_fips_5
 ```
 
-This table supports county-level panel analysis of HMDA record volumes, non-purchase application records, purchased loans, originations, denials, total loan amounts, average loan amounts, median loan amounts, and lender counts.
+This table supports county-level panel analysis of HMDA record volumes, non-purchase application/action records, purchased loans, originations, denials, total loan amounts, average loan amounts, median loan amounts, and lender counts.
 
 The lender-county-year aggregate unit is:
 
