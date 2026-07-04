@@ -86,7 +86,7 @@ COLUMN_DESCRIPTIONS = {
     "activity_year": "HMDA reporting year.",
     "source_era": "Schema era: pre_2018 historic files or post_2018 Data Browser files.",
     "lei_or_respondent_id": "Legal Entity Identifier for post-2018 records or respondent_id for historic records.",
-    "state_code": "State FIPS code when available.",
+    "state_code": "Raw HMDA state code; numeric/FIPS-style in historic files and often two-letter abbreviation post-2018.",
     "county_code": "County FIPS code when available.",
     "loan_type": "HMDA loan type code.",
     "loan_purpose": "HMDA loan purpose code.",

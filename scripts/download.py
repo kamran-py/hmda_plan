@@ -56,7 +56,7 @@ def iter_years(smoke: bool) -> Iterable[int]:
 
 def build_download_plan(years: Iterable[int]) -> list[str]:
     lines = [
-        "Download plan only. Phase 1 does not perform network requests.",
+        "Download plan only. Use --download only after reviewing the command and storage requirements.",
         f"User-Agent for later approved downloads: {get_user_agent()}",
     ]
     for year in years:

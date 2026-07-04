@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a county-level panel dataset of US mortgage lending from HMDA loan-level data for 2007-2024, focused on the geographic expansion of fintech mortgage lenders.
+Build a county-level and lender-county-level panel dataset of US mortgage lending from HMDA loan-level data for 2007-2024, suitable for later research on geographic expansion by mortgage lenders.
 
 ## Data Sources
 
@@ -63,7 +63,7 @@ The smoke test should eventually:
 - Verify canonical column mapping for both schema eras.
 - Build a small DuckDB database with metadata and county-year aggregates.
 
-No downloads or processing are part of Phase 1.
+The first validation pass should avoid downloads and processing until the exact command has been reviewed.
 
 ## Canonical Fields
 
@@ -81,7 +81,7 @@ The initial canonical loan-level fields should include:
 - `occupancy_type`
 - `lien_status`
 
-Additional fintech lender identifiers will need a separate lender classification table or rule set.
+Fintech and nonbank lender identifiers require a separate lender classification table or rule set.
 
 ## County-Year Aggregates
 

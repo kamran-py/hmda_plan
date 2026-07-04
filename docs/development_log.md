@@ -1,8 +1,10 @@
-# Progress
+# Development Log
 
-## Current Status
+This is a chronological development log. Early sections describe intermediate states that are no longer current. For the final project state, see [README.md](../README.md) and [docs/final_summary.md](final_summary.md).
 
-- Repository inspected locally inside `C:\Users\kanop\hmda_plan`.
+## Initial Status
+
+- Repository inspected locally inside the repository root.
 - Existing scaffold found:
   - `README.md`
   - `configs/smoke_test.example.json`
@@ -343,24 +345,24 @@ Files by year:
 
 | Year | Status | Size | Output path |
 |---:|---|---:|---|
-| 2007 | downloaded | 0.429 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2007_nationwide.zip` |
-| 2008 | downloaded | 0.288 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2008_nationwide.zip` |
-| 2009 | downloaded | 0.309 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2009_nationwide.zip` |
-| 2010 | downloaded | 0.343 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2010_nationwide.zip` |
-| 2011 | downloaded | 0.312 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2011_nationwide.zip` |
-| 2012 | downloaded | 0.405 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2012_nationwide.zip` |
-| 2013 | downloaded | 0.373 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2013_nationwide.zip` |
-| 2014 | downloaded | 0.501 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2014_nationwide.zip` |
-| 2015 | downloaded | 0.314 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2015_nationwide.zip` |
-| 2016 | downloaded | 0.358 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2016_nationwide.zip` |
-| 2017 | downloaded | 0.170 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2017_nationwide.zip` |
-| 2018 | downloaded | 5.475 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2018_nationwide.csv` |
-| 2019 | downloaded | 6.367 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2019_nationwide.csv` |
-| 2020 | downloaded | 9.093 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2020_nationwide.csv` |
-| 2021 | downloaded | 9.322 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2021_nationwide.csv` |
-| 2022 | downloaded | 5.698 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2022_nationwide.csv` |
-| 2023 | downloaded | 4.098 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2023_nationwide.csv` |
-| 2024 | downloaded | 4.318 GiB | `C:\Users\kanop\hmda_plan\data\raw\hmda_2024_nationwide.csv` |
+| 2007 | downloaded | 0.429 GiB | `data/raw/hmda_2007_nationwide.zip` |
+| 2008 | downloaded | 0.288 GiB | `data/raw/hmda_2008_nationwide.zip` |
+| 2009 | downloaded | 0.309 GiB | `data/raw/hmda_2009_nationwide.zip` |
+| 2010 | downloaded | 0.343 GiB | `data/raw/hmda_2010_nationwide.zip` |
+| 2011 | downloaded | 0.312 GiB | `data/raw/hmda_2011_nationwide.zip` |
+| 2012 | downloaded | 0.405 GiB | `data/raw/hmda_2012_nationwide.zip` |
+| 2013 | downloaded | 0.373 GiB | `data/raw/hmda_2013_nationwide.zip` |
+| 2014 | downloaded | 0.501 GiB | `data/raw/hmda_2014_nationwide.zip` |
+| 2015 | downloaded | 0.314 GiB | `data/raw/hmda_2015_nationwide.zip` |
+| 2016 | downloaded | 0.358 GiB | `data/raw/hmda_2016_nationwide.zip` |
+| 2017 | downloaded | 0.170 GiB | `data/raw/hmda_2017_nationwide.zip` |
+| 2018 | downloaded | 5.475 GiB | `data/raw/hmda_2018_nationwide.csv` |
+| 2019 | downloaded | 6.367 GiB | `data/raw/hmda_2019_nationwide.csv` |
+| 2020 | downloaded | 9.093 GiB | `data/raw/hmda_2020_nationwide.csv` |
+| 2021 | downloaded | 9.322 GiB | `data/raw/hmda_2021_nationwide.csv` |
+| 2022 | downloaded | 5.698 GiB | `data/raw/hmda_2022_nationwide.csv` |
+| 2023 | downloaded | 4.098 GiB | `data/raw/hmda_2023_nationwide.csv` |
+| 2024 | downloaded | 4.318 GiB | `data/raw/hmda_2024_nationwide.csv` |
 
 HTTP status and redirect note:
 
@@ -1232,7 +1234,7 @@ Created:
 Updated:
 
 - `README.md`
-- `docs/progress.md`
+- `docs/development_log.md`
 
 The final summary is the main research-methods and data-construction memo. It documents the project objective, data sources, data scale, pipeline architecture, DuckDB objects, panel units, variable construction, geography normalization, action-code mapping, lender identifiers, fintech-classification limitation, econometric readiness, QA checks, final exports, reproducibility commands, next steps, and caveats.
 
@@ -1245,6 +1247,6 @@ Status: completed. No database modification, download, conversion, classificatio
 Updated:
 
 - `README.md`
-- `docs/progress.md`
+- `docs/development_log.md`
 
 The README now includes the project overview, final outputs, data scale, pipeline summary, main database objects, reproduction commands, key caveats, and documentation map using only repository-validated facts.

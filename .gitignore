@@ -9,7 +9,7 @@ dist/
 build/
 *.egg-info/
 
-# Large local data artifacts
+# Large generated or local data artifacts
 data/raw/*
 data/parquet/*
 data/duckdb/*
@@ -33,7 +33,7 @@ output/*
 *.log
 logs/
 
-# Small public export artifacts
+# Committed small review outputs
 !output/county_year_lending.csv
 !output/lender_county_year_sample.csv
 !output/export_manifest.csv

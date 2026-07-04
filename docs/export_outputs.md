@@ -4,6 +4,8 @@
 
 This export step creates researcher-facing files from existing DuckDB tables. It does not download data, delete raw or Parquet files, classify fintech lenders, or rebuild the database.
 
+The small CSV outputs and manifest are committed for public review. The full lender-county-year Parquet export is generated locally and is not committed to GitHub.
+
 ## Source Row Counts
 
 | table | row_count |
@@ -24,6 +26,12 @@ This export step creates researcher-facing files from existing DuckDB tables. It
 `lender_county_year` is exported as Parquet by default because it has millions of rows. Parquet is smaller, typed, faster to read with DuckDB, R, Python, and other analytics tools, and avoids the large disk footprint and slower parsing of a raw CSV.
 
 A 100,000-row CSV sample is exported for quick inspection in spreadsheet tools.
+
+In the public GitHub repository, regenerate the full Parquet export with:
+
+```powershell
+python -m scripts.export_tables
+```
 
 ## Full CSV Option
 

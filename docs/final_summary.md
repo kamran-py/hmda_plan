@@ -75,7 +75,7 @@ Parquet is the durable intermediate format because it is columnar, typed, compac
 
 ## 5. Database Objects
 
-The final DuckDB database is `data/duckdb/hmda_panel.duckdb`. Its file size is 337,129,472 bytes.
+The final DuckDB database is `data/duckdb/hmda_panel.duckdb`. Its file size is 337,129,472 bytes. The database is a generated local artifact and is not committed to GitHub; it depends on locally regenerated annual Parquet files because `loan_years` is a view over those files.
 
 | object | type | row count | grain | key columns | purpose and intended use |
 | --- | --- | ---: | --- | --- | --- |
@@ -321,6 +321,8 @@ Export validation confirmed that `output/lender_county_year.parquet` can be read
 | `output/export_manifest.csv` | CSV | 3 | 725 | Export audit trail. | Small manifest table. |
 
 The full lender-county-year table is exported as Parquet because it has millions of rows and should remain columnar. A full compressed CSV can be created later with `python -m scripts.export_tables --include-large-csv`, but it was not created in the default export run.
+
+Only the small CSV exports and export manifest are committed to GitHub. The full `output/lender_county_year.parquet` export is generated locally by `python -m scripts.export_tables` and is excluded from GitHub by `.gitignore`.
 
 ## 15. Reproducibility
 
