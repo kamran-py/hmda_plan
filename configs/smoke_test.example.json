@@ -1,0 +1,21 @@
+{
+  "years": [2022, 2023],
+  "input_mode": "manifest_only",
+  "max_rows_per_year": 1000,
+  "required_columns": [
+    "activity_year",
+    "lei",
+    "loan_type",
+    "loan_purpose",
+    "action_taken",
+    "state_code",
+    "county_code"
+  ],
+  "checks": [
+    "config_valid",
+    "year_pair_present",
+    "required_columns_declared",
+    "row_limit_declared",
+    "no_network_required"
+  ]
+}
