@@ -1,24 +1,19 @@
 # HMDA County Panel
 
-This repository contains a reproducible HMDA mortgage-lending data pipeline for 2007-2024. It builds county-year and lender-county-year panels from public HMDA loan-level data, with explicit handling of the 2018 HMDA schema break.
+Reproducible HMDA mortgage-lending pipeline for 2007–2024. It builds county-year
+and lender-county-year panels from public loan-level data, including the 2018 schema break.
 
-The project is a data-construction and research-readiness artifact. It is designed to make the data pipeline, assumptions, exclusions, and generated outputs legible to researchers, graduate faculty, and applied economics or finance professionals.
+It documents the pipeline, assumptions, exclusions, and outputs for research use.
 
 For the full research-methods memo, see [docs/final_summary.md](docs/final_summary.md).
 
-## What This Repository Is
+## Scope
 
-- A reproducible pipeline from public HMDA source files to analysis-ready county and lender-county panels.
-- A documented approach to HMDA schema harmonization across 2007-2024.
-- A large-scale DuckDB and Parquet workflow for data that is too large for ordinary in-memory processing.
-- A foundation for later work on lender presence, geographic expansion, and fintech/nonbank mortgage lending.
-
-## What This Repository Is Not
-
-- It is not a final causal analysis.
-- It does not classify lenders as fintech, nonbank, or bank.
-- It does not resolve lender identities across the pre-2018 respondent ID system and the post-2018 LEI system.
-- It does not commit the full raw HMDA files, annual Parquet intermediates, DuckDB database, or full lender-county-year Parquet export to GitHub.
+- Reproducible public-HMDA pipeline with documented cross-era harmonization.
+- DuckDB/Parquet workflow for large source files.
+- Foundation for later lender-presence, geographic-expansion, and fintech/nonbank research.
+- Not a causal analysis; lender identity and fintech/nonbank classification remain out of scope.
+- Raw files, annual Parquet intermediates, the DuckDB database, and the full lender-county-year export are not committed.
 
 ## Data Scale
 
@@ -34,7 +29,7 @@ For the full research-methods memo, see [docs/final_summary.md](docs/final_summa
 
 ### Committed Small Outputs
 
-These files are small enough to keep in GitHub and are available after cloning the repository.
+Available after cloning:
 
 | path | format | rows | purpose |
 | --- | --- | ---: | --- |
@@ -44,7 +39,7 @@ These files are small enough to keep in GitHub and are available after cloning t
 
 ### Generated Local Outputs
 
-These artifacts are produced by the pipeline but are intentionally not committed to GitHub because of size, portability, or reproducibility concerns.
+Generated locally and excluded from GitHub:
 
 | path | format | rows | note |
 | --- | --- | ---: | --- |
@@ -55,9 +50,9 @@ These artifacts are produced by the pipeline but are intentionally not committed
 
 ## Data Availability
 
-The committed CSV outputs are included for quick review. The full lender-county-year table, DuckDB database, raw source files, and annual Parquet intermediates are generated local artifacts and are excluded by `.gitignore`.
-
-This means a cloned copy of the repository can inspect the committed CSV outputs immediately, but cannot query the full DuckDB database or full lender-county-year Parquet export until the pipeline is rerun locally.
+Committed CSVs are ready to inspect. The full lender-county-year table, DuckDB
+database, raw sources, and annual Parquet intermediates are local artifacts;
+rerun the pipeline to create them.
 
 ## Setup
 
@@ -75,7 +70,7 @@ python -m unittest discover -s tests
 
 ## Quick Inspection
 
-These commands work after cloning and do not require downloading the full HMDA source files.
+Works after cloning without downloading the full source files:
 
 ```powershell
 "output/county_year_lending.csv", "output/lender_county_year_sample.csv", "output/export_manifest.csv" |
@@ -99,7 +94,7 @@ public HMDA source files
 
 ## Main Database Objects
 
-The generated DuckDB database contains the following main objects after the full pipeline is run locally:
+After a full local run, the DuckDB database contains:
 
 - `loan_years`: canonical loan-level view over annual Parquet files.
 - `loan_years_geo`: geography-normalized loan-level view with `state_fips_2` and `county_fips_5`.
@@ -107,11 +102,11 @@ The generated DuckDB database contains the following main objects after the full
 - `lender_county_year`: lender-county-year lending aggregate.
 - `column_metadata`: metadata for canonical database columns.
 - `year_summary`: year-level database summary table.
-- QA tables: missing-geography and missing-lender tables for aggregate exclusions.
+- QA tables for missing geography and lender values.
 
 ## Reproduction Commands
 
-Large downloads and processing steps should be reviewed before running. The raw source download requires substantial disk space.
+Review large downloads before running; raw sources require substantial disk space.
 
 ```powershell
 $env:HMDA_USER_AGENT = "hmda-county-panel-research/0.1 (contact: set-via-HMDA_USER_AGENT)"
@@ -150,12 +145,11 @@ python -m scripts.export_tables
 
 - HMDA has a major schema break in 2018.
 - Pre-2018 lender IDs use `respondent_id`; post-2018 lender IDs use LEI.
-- The canonical database has lender IDs but no lender names.
-- Fintech classification requires external lender identity enrichment.
+- The canonical database has lender IDs, not names; fintech classification needs external enrichment.
 - `total_records` counts all HMDA records at the aggregate grain; `application_records` excludes purchased-loan records with `action_taken = '6'`.
 - Rows with missing county geography are excluded from the main county-level aggregates and preserved in QA tables.
-- The current output is a research data foundation, not a final causal estimate.
-- This run used a raw-first download approach. Future production runs should prefer year-at-a-time processing: download or stream one year, convert to Parquet, validate, and optionally remove the raw intermediate.
+- This is a research-data foundation, not a causal estimate.
+- Future production runs should prefer year-at-a-time processing.
 
 ## Data Sources
 
@@ -176,8 +170,9 @@ python -m scripts.export_tables
 - [docs/research_readiness_audit.md](docs/research_readiness_audit.md): readiness checks for lender-level and county-level analysis.
 - [docs/schema_audit.md](docs/schema_audit.md): annual Parquet schema audit.
 - [docs/plan.md](docs/plan.md): implementation plan.
-- [docs/development_log.md](docs/development_log.md): chronological development log. Early entries are historical and should not be read as the final project state.
+- [docs/development_log.md](docs/development_log.md): chronological log; early entries are historical.
 
 ## Reuse Note
 
-The HMDA source data are public data distributed by CFPB/FFIEC. Repository users should review the upstream data documentation before publication or production use. Add an explicit repository license before inviting third-party code reuse.
+HMDA data are public CFPB/FFIEC data. Review upstream documentation before
+publication or production use. Add a license before inviting third-party reuse.
